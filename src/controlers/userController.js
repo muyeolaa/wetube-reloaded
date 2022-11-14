@@ -1,7 +1,6 @@
 import User from "../models/User";
 import fetch from "node-fetch";
 import bcrypt from "bcrypt";
-
 export const getJoin = (req, res) => res.render("join", { pageTitle: "Join" });
 export const postJoin = async (req, res) => {
   const { name, username, email, password, password2, location } = req.body;
@@ -69,7 +68,6 @@ export const startGithubLogin = (req, res) => {
   const finalUrl = `${baseUrl}?${params}`;
   return res.redirect(finalUrl);
 };
-
 export const finishGithubLogin = async (req, res) => {
   const baseUrl = "https://github.com/login/oauth/access_token";
   const config = {
@@ -90,7 +88,6 @@ export const finishGithubLogin = async (req, res) => {
   if ("access_token" in tokenRequest) {
     const { access_token } = tokenRequest;
     const apiUrl = "https://api.github.com";
-    console.log(tokenRequest,"T");
     const userData = await (
       await fetch(`${apiUrl}/user`, {
         headers: {
@@ -98,8 +95,6 @@ export const finishGithubLogin = async (req, res) => {
         },
       })
     ).json();
-
-    console.log(userData,"U");
     const emailData = await (
       await fetch(`${apiUrl}/user/emails`, {
         headers: {
@@ -107,19 +102,34 @@ export const finishGithubLogin = async (req, res) => {
         },
       })
     ).json();
-    const email = emailData.find(
+    const emailObj = emailData.find(
       (email) => email.primary === true && email.verified === true
     );
-    console.log(emailData,"E");
-
-    if (!email) {
+    if (!emailObj) {
       return res.redirect("/login");
+    }
+    const existingUser = await User.findOne({ email: emailObj.email });
+    if (existingUser) {
+      req.session.loggedIn = true;
+      req.session.user = existingUser;
+      return res.redirect("/");
+    } else {
+      const user = await User.create({
+        name: userData.name,
+        username: userData.login,
+        email: emailObj.email,
+        password: "",
+        socialOnly: true,
+        location: userData.location,
+      });
+      req.session.loggedIn = true;
+      req.session.user = user;
+      return res.redirect("/");
     }
   } else {
     return res.redirect("/login");
   }
 };
-
 export const edit = (req, res) => res.send("Edit User");
 export const remove = (req, res) => res.send("Remove User");
 export const logout = (req, res) => res.send("Log out");
