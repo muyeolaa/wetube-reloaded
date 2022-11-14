@@ -62,7 +62,7 @@ export const startGithubLogin = (req, res) => {
   const config = {
     client_id: process.env.GH_CLIENT,
     allow_signup: false,
-    scope: "read:user user:email",
+    scope: "read:user user:email", 
   };
   const params = new URLSearchParams(config).toString();
   const finalUrl = `${baseUrl}?${params}`;
@@ -134,5 +134,13 @@ export const logout = (req, res) => {
   req.session.destroy();
   return res.redirect("/");
 };
-export const edit = (req, res) => res.send("Edit User");
+
+export const getEdit = (req, res) => {
+  return res.render("edit-profile",{pageTitle: "Edit Profile"});
+};
+
+export const postEdit = (req, res) => {
+  return res.render("edit-profile");
+};
+
 export const see = (req, res) => res.send("See User");
