@@ -62,7 +62,7 @@ export const startGithubLogin = (req, res) => {
   const config = {
     client_id: process.env.GH_CLIENT,
     allow_signup: false,
-    scope: "read:user user:email", 
+    scope: "read:user user:email",
   };
   const params = new URLSearchParams(config).toString();
   const finalUrl = `${baseUrl}?${params}`;
@@ -106,9 +106,9 @@ export const finishGithubLogin = async (req, res) => {
       (email) => email.primary === true && email.verified === true
     );
     if (!emailObj) {
+      // set notification
       return res.redirect("/login");
     }
-    
     let user = await User.findOne({ email: emailObj.email });
     if (!user) {
       user = await User.create({
@@ -120,7 +120,6 @@ export const finishGithubLogin = async (req, res) => {
         socialOnly: true,
         location: userData.location,
       });
-      
     }
     req.session.loggedIn = true;
     req.session.user = user;
@@ -129,90 +128,64 @@ export const finishGithubLogin = async (req, res) => {
     return res.redirect("/login");
   }
 };
-
 export const logout = (req, res) => {
   req.session.destroy();
   return res.redirect("/");
 };
-
 export const getEdit = (req, res) => {
-  return res.render("edit-profile",{pageTitle: "Edit Profile"});
+  return res.render("edit-profile", { pageTitle: "Edit Profile" });
 };
-
-
 export const postEdit = async (req, res) => {
   const {
-      session: {
-          user: { _id, avatarUrl, email: sessionEmail, username: sessionUsername },
-      },
-      body: { name, email, username, location },
-      file
+    session: {
+      user: { _id, avatarUrl },
+    },
+    body: { name, email, username, location },
+    file,
   } = req;
-  let searchParam = [];
-  if (sessionEmail !== email) {
-      searchParam.push({ email });
-  }
-  if (sessionUsername !== username) {
-      searchParam.push({ username });
-  }
-  if (searchParam.length > 0) {
-      const foundUser = await User.findOne({ $or: searchParam });
-      if (foundUser && foundUser._id.toString() !== _id) {
-          return res.status(HTTP_BAD_REQUEST).render("edit-profile", {
-              pageTitle: "Edit Profile",
-              errorMessage: "This username/email is already taken.",
-          });
-      }
-  }
-  const isHeroku = process.env.NODE_ENV === "production";
-  
-  console.log(file);
-
-  const updatedUser = await User.findByIdAndUpdate(_id, {
-      avatarUrl: file ? (isHeroku ? file.location : file.path) : avatarUrl,
+  const updatedUser = await User.findByIdAndUpdate(
+    _id,
+    {
+      avatarUrl: file ? file.path : avatarUrl,
       name,
       email,
       username,
-      location
-  },
-      {
-          new: true
-      }
+      location,
+    },
+    { new: true }
   );
   req.session.user = updatedUser;
   return res.redirect("/users/edit");
-}
-
-export const getChangePassword = (req,res) => {
-  if(req.session.user.socialOnly ===true){
-    return res.redirect("/");
-  };
-  return res.render("users/change-password", {pageTitle: "Change Password"});
 };
-
-export const postChangePassword = async (req,res) => {
-  const { session: { user: { _id }, },
-   body: {oldPassword,newPassword,newPasswordConfirmation},} = req;
+export const getChangePassword = (req, res) => {
+  if (req.session.user.socialOnly === true) {
+    return res.redirect("/");
+  }
+  return res.render("users/change-password", { pageTitle: "Change Password" });
+};
+export const postChangePassword = async (req, res) => {
+  const {
+    session: {
+      user: { _id },
+    },
+    body: { oldPassword, newPassword, newPasswordConfirmation },
+  } = req;
   const user = await User.findById(_id);
-  const ok = await bcrypt.compare(oldPassword,user.password) 
-  if(!ok){
-    return res.status(401).render("users/change-password", {
+  const ok = await bcrypt.compare(oldPassword, user.password);
+  if (!ok) {
+    return res.status(400).render("users/change-password", {
       pageTitle: "Change Password",
       errorMessage: "The current password is incorrect",
     });
-}
-
-   if(newPassword !== newPasswordConfirmation){
-      return res.status(400).render("users/change-password", {
-        pageTitle: "Change Password",
-        errorMessage: "The password does not match the confirmation",
-  });
-}
-user.password = newPassword;
-await user.save();
-//비밀번호가 성공적으로 바뀌엇다는 말 
+  }
+  if (newPassword !== newPasswordConfirmation) {
+    return res.status(400).render("users/change-password", {
+      pageTitle: "Change Password",
+      errorMessage: "The password does not match the confirmation",
+    });
+  }
+  user.password = newPassword;
+  await user.save();
   return res.redirect("/users/logout");
 };
-
-
-export const see = (req, res) => res.send("See User");{}
+export const see = (req, res) => res.send("See User");
