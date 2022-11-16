@@ -165,6 +165,9 @@ export const postEdit = async (req, res) => {
       }
   }
   const isHeroku = process.env.NODE_ENV === "production";
+  
+  console.log(file);
+
   const updatedUser = await User.findByIdAndUpdate(_id, {
       avatarUrl: file ? (isHeroku ? file.location : file.path) : avatarUrl,
       name,
@@ -191,7 +194,7 @@ export const postChangePassword = async (req,res) => {
   const { session: { user: { _id }, },
    body: {oldPassword,newPassword,newPasswordConfirmation},} = req;
   const user = await User.findById(_id);
-  const ok = await bcrypt.compare(oldPassword,user.password) // 입력한 비밀번호가 db의 비밀번호와 비교
+  const ok = await bcrypt.compare(oldPassword,user.password) 
   if(!ok){
     return res.status(401).render("users/change-password", {
       pageTitle: "Change Password",
