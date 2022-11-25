@@ -28,7 +28,7 @@ app.use(
         secret:process.env.COOKIRE_SECRET,
         resave:false,
         saveUninitialized:false,
-        store:MongoStore.create({mongoUrl:process.env.DB_URL})
+        store: MongoStore.create({ mongoUrl: process.env.DB_URL }),
      }) 
 );
 
