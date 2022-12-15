@@ -21,14 +21,15 @@ app.use((req, res, next) => {
     next();
     });
 app.use(logger);
-app.use(express.urlencoded({ extended:true }));
+app.use(express.urlencoded({ extended:true }));  // HTML form 을 이해하고 JS 오브젝트로 통역해줌 
 app.use(express.json());
+
 app.use( 
     session({
         secret:process.env.COOKIRE_SECRET,
         resave:false,
-        saveUninitialized:false,
-        store: MongoStore.create({ mongoUrl: process.env.DB_URL }),
+        saveUninitialized:false,  // 세션을 수정할때만 DB에 저장 하고 쿠키를 넘겨줌 === 로그인한 유저들에게만 쿠키를줌 
+        store: MongoStore.create({ mongoUrl: process.env.DB_URL }),// 세션정보를 db에 넣어줌 
      }) 
 );
 

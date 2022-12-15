@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema({
   videos: [{ type: mongoose.Schema.Types.ObjectId, ref: "Video" }]
 });
 
-userSchema.pre("save", async function() {
+userSchema.pre("save", async function() { //pre 미들웨어는 save 이전에 처리할 로직을 지정 
   if(this.isModified("password")){
     this.password = await bcrypt.hash(this.password, 5); // this 는 유저와 같다 
   }

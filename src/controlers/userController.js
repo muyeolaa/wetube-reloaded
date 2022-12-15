@@ -3,6 +3,8 @@ import fetch from "node-fetch";
 import bcrypt from "bcrypt";
 
 export const getJoin = (req, res) => res.render("join", { pageTitle: "Join" });
+
+
 export const postJoin = async (req, res) => {
   const { name, username, email, password, password2, location } = req.body;
   const pageTitle = "Join";
@@ -12,6 +14,7 @@ export const postJoin = async (req, res) => {
       errorMessage: "Password confirmation does not match.",
     });
   }
+
   const exists = await User.exists({ $or: [{ username }, { email }] });
   if (exists) {
     return res.status(400).render("join", {
@@ -19,6 +22,8 @@ export const postJoin = async (req, res) => {
       errorMessage: "This username/email is already taken.",
     });
   }
+  // 비밀번호와 비밀번호 확인이 같으면 DB에서 ID와 이메일이 중복되는지 체크
+  // 중복되지 않았으면 유저 정보를 DB에 저장 예외 발생시 상태코드 400표출,회원가입 페이지로 보냄
   try {
     await User.create({
       name,
@@ -35,8 +40,12 @@ export const postJoin = async (req, res) => {
     });
   }
 };
+
+
+
 export const getLogin = (req, res) =>
   res.render("login", { pageTitle: "Login" });
+
 export const postLogin = async (req, res) => {
   const { username, password } = req.body;
   const pageTitle = "Login";
@@ -47,17 +56,22 @@ export const postLogin = async (req, res) => {
       errorMessage: "An account with this username does not exists.",
     });
   }
-  const ok = await bcrypt.compare(password, user.password);
+  const ok = await bcrypt.compare(password, user.password); //입력된 비밀번호를 해싱후 저장된 비밀번호와 비교 
   if (!ok) {
     return res.status(400).render("login", {
       pageTitle,
       errorMessage: "Wrong password",
     });
   }
-  req.session.loggedIn = true;
-  req.session.user = user;
+  req.session.loggedIn = true;  //  입력된 ID와 비밀번호가 DB에 있는지 확인, 없다면 에러표출 
+  req.session.user = user;      //  유저를 세선에 저장 
   return res.redirect("/");
 };
+
+
+
+
+
 export const startGithubLogin = (req, res) => {
   const baseUrl = "https://github.com/login/oauth/authorize";
   const config = {
@@ -69,6 +83,8 @@ export const startGithubLogin = (req, res) => {
   const finalUrl = `${baseUrl}?${params}`;
   return res.redirect(finalUrl);
 };
+// 깃허브에서 받아올 유저 정보를 정하고 깃허브로 보내줌 
+
 export const finishGithubLogin = async (req, res) => {
   const baseUrl = "https://github.com/login/oauth/access_token";
   const config = {
@@ -86,7 +102,7 @@ export const finishGithubLogin = async (req, res) => {
       },
     })
   ).json();
-  if ("access_token" in tokenRequest) {
+  if ("access_token" in tokenRequest) { //access_token은 깃허브 api와 상호작용할때 사용 
     const { access_token } = tokenRequest;
     const apiUrl = "https://api.github.com";
     const userData = await (
@@ -107,7 +123,6 @@ export const finishGithubLogin = async (req, res) => {
       (email) => email.primary === true && email.verified === true
     );
     if (!emailObj) {
-      // set notification
       return res.redirect("/login");
     }
     let user = await User.findOne({ email: emailObj.email });
@@ -122,6 +137,9 @@ export const finishGithubLogin = async (req, res) => {
         location: userData.location,
       });
     }
+      // 깃허브에서 받은 토큰으로 유저의 이름과 이메일을 받아옴 
+      // 받아온 이메일과 회원정보에 저장된 이메일이 같으면 바로 로그인 없다면 새로운계정 생성 
+
     req.session.loggedIn = true;
     req.session.user = user;
     return res.redirect("/");
@@ -129,15 +147,18 @@ export const finishGithubLogin = async (req, res) => {
     return res.redirect("/login");
   }
 };
+
 export const logout = (req, res) => {
   req.session.user = null;
   req.session.loggedIn = false;
   req.flash("info", "Bye Bye");
   return res.redirect("/");
 };
+
 export const getEdit = (req, res) => {
   return res.render("edit-profile", { pageTitle: "Edit Profile" });
 };
+
 export const postEdit = async (req, res) => {
   const {
     session: {
@@ -149,7 +170,7 @@ export const postEdit = async (req, res) => {
   const updatedUser = await User.findByIdAndUpdate(
     _id,
     {
-      avatarUrl: file ? file.path : avatarUrl,
+      avatarUrl: file ? file.path : avatarUrl,  //유저가 파일을 올렸다면 업데이트,아니면 유지 
       name,
       email,
       username,
@@ -160,6 +181,7 @@ export const postEdit = async (req, res) => {
   req.session.user = updatedUser;
   return res.redirect("/users/edit");
 };
+
 export const getChangePassword = (req, res) => {
   if (req.session.user.socialOnly === true) {
     req.flash("error", "Can't Chnage Password.");
@@ -167,11 +189,11 @@ export const getChangePassword = (req, res) => {
   }
   return res.render("users/change-password", { pageTitle: "Change Password" });
 };
+
+// 입력한 비밀번호와 저장된 비밀번호를 비교후 같지 않으면 에러 표출 같으면 새로운 비밀번호로 업데이트 
 export const postChangePassword = async (req, res) => {
   const {
-    session: {
-      user: { _id },
-    },
+    session: {      user: { _id },    },
     body: { oldPassword, newPassword, newPasswordConfirmation },
   } = req;
   const user = await User.findById(_id);

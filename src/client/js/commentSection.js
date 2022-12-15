@@ -1,29 +1,40 @@
 const videoContainer = document.getElementById("videoContainer");
 const form = document.getElementById("commentForm");
+const deleteBtn = document.querySelectorAll("#deleteCommentBtn");
 
-const addComment = (text, id) => {
+// 새로고침없이 실시간 댓글기능 
+const addComment = (text, commentId) => {
   const videoComments = document.querySelector(".video__comments ul");
   const newComment = document.createElement("li");
-  newComment.dataset.id = id;
+  newComment.dataset.id = commentId;
   newComment.className = "video__comment";
-  const icon = document.createElement("i");
+  const icon = document.createElement("icon");
   icon.className = "fas fa-comment";
   const span = document.createElement("span");
   span.innerText = ` ${text}`;
+  const span2 = document.createElement("span");
+  span2.innerText = "❌";
+  span2.dataset.id = commentId;
+  span2.dataset.videoid = videoContainer.dataset.id;
+  span2.id = "newDeleteCommentBtn";
+  span2.className = "video__comment-delete";
   newComment.appendChild(icon);
   newComment.appendChild(span);
+  newComment.appendChild(span2);
   videoComments.prepend(newComment);
+  const newDeleteCommentBtn = document.querySelector("#newDeleteCommentBtn");
+  newDeleteCommentBtn.addEventListener("click", handleClick);
 };
-
 
 const handleSubmit = async (event) => {
   event.preventDefault();
   const textarea = form.querySelector("textarea");
   const text = textarea.value;
   const videoId = videoContainer.dataset.id;
-  if (text === "") {
+  if (text === "") {  //form 이 빈칸이 아닌지 확인 
     return;
   }
+  
   const response = await fetch(`/api/videos/${videoId}/comment`, {
     method: "POST",
     headers: {
@@ -36,8 +47,24 @@ const handleSubmit = async (event) => {
     const { newCommentId } = await response.json();
     addComment(text, newCommentId);
   }
+  
 };
 
-if (form) {
-  form.addEventListener("submit", handleSubmit);
-}
+
+const handleClick = async (event) => {
+  const { id, videoid } = event.target.dataset;
+  const response = await fetch(`/api/videos/${videoid}/comments/${id}/delete`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ id, videoid }),
+  });
+  if (response.status === 200) {
+    event.target.parentNode.remove();
+  }
+};
+
+if (form) form.addEventListener("submit", handleSubmit);
+if (deleteBtn)
+  deleteBtn.forEach((btn) => btn.addEventListener("click", handleClick));

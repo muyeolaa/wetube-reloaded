@@ -1,6 +1,6 @@
 import express from "express";
-import {watch,getEdit,getUpload,postEdit,upload,deleteVideo,postUpload} from "../controlers/videoController";
-import { protectorMiddleware, uploadFiles, videoUpload } from "../middlewares";
+import {watch,getEdit,getUpload,postEdit,deleteVideo,postUpload} from "../controlers/videoController";
+import { protectorMiddleware, videoUpload } from "../middlewares";
 
 const videoRouter = express.Router();
 
